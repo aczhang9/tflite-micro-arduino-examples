@@ -1,4 +1,4 @@
-/* Copyright 2022 The TensorFlow Authors. All Rights Reserved.
+/* Copyright 2018 The TensorFlow Authors. All Rights Reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -17,6 +17,7 @@ limitations under the License.
 #define TENSORFLOW_LITE_MICRO_EXAMPLES_MICRO_SPEECH_AUDIO_PROVIDER_H_
 
 #include "tensorflow/lite/c/common.h"
+#include "tensorflow/lite/micro/micro_error_reporter.h"
 
 // This is an abstraction around an audio source like a microphone, and is
 // expected to return 16-bit PCM sample data for a given point in time. The
@@ -40,8 +41,5 @@ TfLiteStatus GetAudioSamples(int start_ms, int duration_ms,
 // call to access time information. For real applications, you'll need to write
 // your own platform-specific implementation.
 int32_t LatestAudioTimestamp();
-
-// Starts audio capture
-TfLiteStatus InitAudioRecording();
 
 #endif  // TENSORFLOW_LITE_MICRO_EXAMPLES_MICRO_SPEECH_AUDIO_PROVIDER_H_

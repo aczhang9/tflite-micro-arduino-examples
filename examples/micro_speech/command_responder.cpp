@@ -10,18 +10,17 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
-// Provides an interface to take an action based on an audio command.
+#include "command_responder.h"
 
-#ifndef TENSORFLOW_LITE_MICRO_EXAMPLES_MICRO_SPEECH_COMMAND_RESPONDER_H_
-#define TENSORFLOW_LITE_MICRO_EXAMPLES_MICRO_SPEECH_COMMAND_RESPONDER_H_
+#include "tensorflow/lite/micro/micro_log.h"
 
-#include "tensorflow/lite/c/common.h"
-
-// Called every time the results of an audio recognition run are available. The
-// human-readable name of any recognized command is in the `found_command`
-// argument, `score` has the numerical confidence, and `is_new_command` is set
-// if the previous command was different to this one.
+// The default implementation writes out the name of the recognized command
+// to the error console. Real applications will want to take some custom
+// action instead, and should implement their own versions of this function.
 void RespondToCommand(int32_t current_time, const char* found_command,
-                      uint8_t score, bool is_new_command);
-
-#endif  // TENSORFLOW_LITE_MICRO_EXAMPLES_MICRO_SPEECH_COMMAND_RESPONDER_H_
+                      uint8_t score, bool is_new_command) {
+    MicroPrintf("Heard %s (%d) @%dms", found_command, score, current_time);
+  if (is_new_command) {
+    MicroPrintf("Heard %s (%d) @%dms", found_command, score, current_time);
+  }
+}

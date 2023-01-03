@@ -1,4 +1,4 @@
-/* Copyright 2022 The TensorFlow Authors. All Rights Reserved.
+/* Copyright 2019 The TensorFlow Authors. All Rights Reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -18,10 +18,9 @@ limitations under the License.
 #include <cmath>
 #include <cstring>
 
-#include "micro_features_micro_model_settings.h"
 #include "tensorflow/lite/experimental/microfrontend/lib/frontend.h"
 #include "tensorflow/lite/experimental/microfrontend/lib/frontend_util.h"
-#include "tensorflow/lite/micro/micro_log.h"
+#include "micro_features_micro_model_settings.h"
 
 // Configure FFT to output 16 bit fixed point.
 #define FIXED_POINT 16
@@ -33,7 +32,7 @@ bool g_is_first_time = true;
 
 }  // namespace
 
-TfLiteStatus InitializeMicroFeatures() {
+TfLiteStatus InitializeMicroFeatures(tflite::ErrorReporter* error_reporter) {
   FrontendConfig config;
   config.window.size_ms = kFeatureSliceDurationMs;
   config.window.step_size_ms = kFeatureSliceStrideMs;
@@ -53,7 +52,7 @@ TfLiteStatus InitializeMicroFeatures() {
   config.log_scale.scale_shift = 6;
   if (!FrontendPopulateState(&config, &g_micro_features_state,
                              kAudioSampleFrequency)) {
-    MicroPrintf("FrontendPopulateState() failed");
+    TF_LITE_REPORT_ERROR(error_reporter, "FrontendPopulateState() failed");
     return kTfLiteError;
   }
   g_is_first_time = true;
@@ -68,7 +67,8 @@ void SetMicroFeaturesNoiseEstimates(const uint32_t* estimate_presets) {
   }
 }
 
-TfLiteStatus GenerateMicroFeatures(const int16_t* input, int input_size,
+TfLiteStatus GenerateMicroFeatures(tflite::ErrorReporter* error_reporter,
+                                   const int16_t* input, int input_size,
                                    int output_size, int8_t* output,
                                    size_t* num_samples_read) {
   const int16_t* frontend_input;
@@ -76,7 +76,7 @@ TfLiteStatus GenerateMicroFeatures(const int16_t* input, int input_size,
     frontend_input = input;
     g_is_first_time = false;
   } else {
-    frontend_input = input;
+    frontend_input = input + 160;
   }
   FrontendOutput frontend_output = FrontendProcessSamples(
       &g_micro_features_state, frontend_input, input_size, num_samples_read);
