@@ -21,7 +21,6 @@ limitations under the License.
 #include "tensorflow/lite/kernels/kernel_util.h"
 #include "tensorflow/lite/kernels/op_macros.h"
 #include "tensorflow/lite/micro/kernels/kernel_util.h"
-#include "tensorflow/lite/micro/micro_log.h"
 
 namespace tflite {
 namespace ops {
@@ -33,17 +32,12 @@ constexpr int kSizeTensor = 1;
 constexpr int kOutputTensor = 0;
 
 TfLiteStatus Prepare(TfLiteContext* context, TfLiteNode* node) {
-  MicroContext* micro_context = GetMicroContext(context);
-
   TF_LITE_ENSURE_EQ(context, NumInputs(node), 2);
   TF_LITE_ENSURE_EQ(context, NumOutputs(node), 1);
 
-  TfLiteTensor* input =
-      micro_context->AllocateTempInputTensor(node, kInputTensor);
-  TfLiteTensor* size =
-      micro_context->AllocateTempInputTensor(node, kSizeTensor);
-  TfLiteTensor* output =
-      micro_context->AllocateTempOutputTensor(node, kOutputTensor);
+  const TfLiteTensor* input = GetInput(context, node, kInputTensor);
+  const TfLiteTensor* size = GetInput(context, node, kSizeTensor);
+  TfLiteTensor* output = GetOutput(context, node, kOutputTensor);
 
   // Our current implementations rely on the input being 4D,
   // and the size being 1D tensor with exactly 2 elements.
@@ -55,14 +49,9 @@ TfLiteStatus Prepare(TfLiteContext* context, TfLiteNode* node) {
   output->type = input->type;
 
   if (!IsConstantTensor(size)) {
-    MicroPrintf("Dynamic tensors are unsupported in tfmicro.");
+    TF_LITE_KERNEL_LOG(context, "Dynamic tensors are unsupported in tfmicro.");
     return kTfLiteError;
   }
-
-  micro_context->DeallocateTempTfLiteTensor(input);
-  micro_context->DeallocateTempTfLiteTensor(size);
-  micro_context->DeallocateTempTfLiteTensor(output);
-
   return kTfLiteOk;
 }
 
@@ -89,6 +78,14 @@ TfLiteStatus Eval(TfLiteContext* context, TfLiteNode* node) {
         tflite::micro::GetTensorData<int32_t>(size),
         tflite::micro::GetTensorShape(output),
         tflite::micro::GetTensorData<int32_t>(output));
+  } else if (output->type == kTfLiteUInt8) {
+    reference_ops::ResizeNearestNeighbor(
+        op_params, tflite::micro::GetTensorShape(input),
+        tflite::micro::GetTensorData<uint8_t>(input),
+        tflite::micro::GetTensorShape(size),
+        tflite::micro::GetTensorData<int32_t>(size),
+        tflite::micro::GetTensorShape(output),
+        tflite::micro::GetTensorData<uint8_t>(output));
   } else if (output->type == kTfLiteInt8) {
     reference_ops::ResizeNearestNeighbor(
         op_params, tflite::micro::GetTensorShape(input),
@@ -97,18 +94,10 @@ TfLiteStatus Eval(TfLiteContext* context, TfLiteNode* node) {
         tflite::micro::GetTensorData<int32_t>(size),
         tflite::micro::GetTensorShape(output),
         tflite::micro::GetTensorData<int8_t>(output));
-  } else if (output->type == kTfLiteInt16) {
-    reference_ops::ResizeNearestNeighbor(
-        op_params, tflite::micro::GetTensorShape(input),
-        tflite::micro::GetTensorData<int16_t>(input),
-        tflite::micro::GetTensorShape(size),
-        tflite::micro::GetTensorData<int32_t>(size),
-        tflite::micro::GetTensorShape(output),
-        tflite::micro::GetTensorData<int16_t>(output));
   } else {
-    MicroPrintf("Output tensor type %s (%d) not supported.",
-                TfLiteTypeGetName(output->type), output->type);
-
+    TF_LITE_KERNEL_LOG(context,
+                       "Output type is %d, requires float, uint8_t or int8_t.",
+                       output->type);
     return kTfLiteError;
   }
 
@@ -117,8 +106,14 @@ TfLiteStatus Eval(TfLiteContext* context, TfLiteNode* node) {
 }  // namespace resize_nearest_neighbor
 
 TfLiteRegistration Register_RESIZE_NEAREST_NEIGHBOR() {
-  return tflite::micro::RegisterOp(nullptr, resize_nearest_neighbor::Prepare,
-                                   resize_nearest_neighbor::Eval);
+  return {/*init=*/nullptr,
+          /*free=*/nullptr,
+          /*prepare=*/resize_nearest_neighbor::Prepare,
+          /*invoke=*/resize_nearest_neighbor::Eval,
+          /*profiling_string=*/nullptr,
+          /*builtin_code=*/0,
+          /*custom_name=*/nullptr,
+          /*version=*/0};
 }
 
 }  // namespace micro

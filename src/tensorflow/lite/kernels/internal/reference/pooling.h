@@ -15,8 +15,6 @@ limitations under the License.
 #ifndef TENSORFLOW_LITE_KERNELS_INTERNAL_REFERENCE_POOLING_H_
 #define TENSORFLOW_LITE_KERNELS_INTERNAL_REFERENCE_POOLING_H_
 
-#include <algorithm>
-
 #include "tensorflow/lite/kernels/internal/common.h"
 #include "tensorflow/lite/kernels/internal/cppmath.h"
 #include "tensorflow/lite/kernels/internal/quantization_util.h"
@@ -25,7 +23,7 @@ limitations under the License.
 namespace tflite {
 namespace reference_ops {
 
-inline bool AveragePool(const PoolParams& params,
+inline void AveragePool(const PoolParams& params,
                         const RuntimeShape& input_shape,
                         const float* input_data,
                         const RuntimeShape& output_shape, float* output_data) {
@@ -68,7 +66,6 @@ inline bool AveragePool(const PoolParams& params,
               filter_count++;
             }
           }
-          if (filter_count == 0) return false;
           const float average = total / filter_count;
           output_data[Offset(output_shape, batch, out_y, out_x, channel)] =
               ActivationFunctionWithMinMax(average, params.float_activation_min,
@@ -77,10 +74,9 @@ inline bool AveragePool(const PoolParams& params,
       }
     }
   }
-  return true;
 }
 
-inline bool AveragePool(const PoolParams& params,
+inline void AveragePool(const PoolParams& params,
                         const RuntimeShape& input_shape,
                         const uint8_t* input_data,
                         const RuntimeShape& output_shape,
@@ -126,7 +122,6 @@ inline bool AveragePool(const PoolParams& params,
               filter_count++;
             }
           }
-          if (filter_count == 0) return false;
           acc = (acc + filter_count / 2) / filter_count;
           acc = std::max(acc, params.quantized_activation_min);
           acc = std::min(acc, params.quantized_activation_max);
@@ -136,7 +131,6 @@ inline bool AveragePool(const PoolParams& params,
       }
     }
   }
-  return true;
 }
 
 inline void L2Pool(const PoolParams& params, const RuntimeShape& input_shape,

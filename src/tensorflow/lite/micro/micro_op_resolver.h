@@ -16,8 +16,9 @@ limitations under the License.
 #define TENSORFLOW_LITE_MICRO_MICRO_OP_RESOLVER_H_
 
 #include "tensorflow/lite/c/common.h"
-#include "tensorflow/lite/micro/tflite_bridge/flatbuffer_conversions_bridge.h"
-#include "tensorflow/lite/micro/tflite_bridge/op_resolver_bridge.h"
+#include "tensorflow/lite/core/api/error_reporter.h"
+#include "tensorflow/lite/core/api/flatbuffer_conversions.h"
+#include "tensorflow/lite/core/api/op_resolver.h"
 #include "tensorflow/lite/schema/schema_generated.h"
 
 namespace tflite {
@@ -31,8 +32,13 @@ namespace tflite {
 // We need an interface class instead of directly using MicroMutableOpResolver
 // because MicroMutableOpResolver is a class template with the number of
 // registered Ops as the template parameter.
-class MicroOpResolver : public TfLiteBridgeOpResolver {
+class MicroOpResolver : public OpResolver {
  public:
+  typedef TfLiteStatus (*BuiltinParseFunction)(const Operator* op,
+                                               ErrorReporter* error_reporter,
+                                               BuiltinDataAllocator* allocator,
+                                               void** builtin_data);
+
   // Returns the Op registration struct corresponding to the enum code from the
   // flatbuffer schema. Returns nullptr if the op is not found or if op ==
   // BuiltinOperator_CUSTOM.
@@ -57,8 +63,7 @@ class MicroOpResolver : public TfLiteBridgeOpResolver {
 
   // Returns the operator specific parsing function for the OpData for a
   // BuiltinOperator (if registered), else nullptr.
-  virtual TfLiteBridgeBuiltinParseFunction GetOpDataParser(
-      BuiltinOperator op) const = 0;
+  virtual BuiltinParseFunction GetOpDataParser(BuiltinOperator op) const = 0;
 
   ~MicroOpResolver() override {}
 };

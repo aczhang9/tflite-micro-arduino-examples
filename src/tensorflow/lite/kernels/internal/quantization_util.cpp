@@ -52,11 +52,6 @@ constexpr uint32_t kFractionRoundingThreshold = 0x00200000;
 
 void QuantizeMultiplier(double double_multiplier, int32_t* quantized_multiplier,
                         int* shift) {
-#if TFLITE_SINGLE_ROUNDING
-  // Single-rounding MultiplyByQuantizedMultiplier only supports positive
-  // multipliers.
-  // TFLITE_DCHECK(double_multiplier >= 0);
-#endif
   if (double_multiplier == 0.) {
     *quantized_multiplier = 0;
     *shift = 0;
@@ -70,10 +65,10 @@ void QuantizeMultiplier(double double_multiplier, int32_t* quantized_multiplier,
   int64_t q_fixed = IntegerFrExp(double_multiplier, shift);
 #else   // TFLITE_EMULATE_FLOAT
   const double q = std::frexp(double_multiplier, shift);
-  auto q_fixed = static_cast<int64_t>(TfLiteRound(q * (1LL << 31)));
+  auto q_fixed = static_cast<int64_t>(TfLiteRound(q * (1ll << 31)));
 #endif  // TFLITE_EMULATE_FLOAT
-  TFLITE_CHECK(q_fixed <= (1LL << 31));
-  if (q_fixed == (1LL << 31)) {
+  TFLITE_CHECK(q_fixed <= (1ll << 31));
+  if (q_fixed == (1ll << 31)) {
     q_fixed /= 2;
     ++*shift;
   }
@@ -92,14 +87,6 @@ void QuantizeMultiplier(double double_multiplier, int32_t* quantized_multiplier,
     *shift = 0;
     q_fixed = 0;
   }
-#if TFLITE_SINGLE_ROUNDING
-  // Single-rounding MultiplyByQuantizedMultiplier doesn't support a shift > 30,
-  // saturate it.
-  if (*shift > 30) {
-    *shift = 30;
-    q_fixed = (1LL << 31) - 1;
-  }
-#endif
   *quantized_multiplier = static_cast<int32_t>(q_fixed);
 }
 
@@ -291,12 +278,6 @@ void PreprocessSoftmaxScaling(double beta, double input_scale,
   // result is double equivalent of Q0.31 (actually with more precision). Thus
   // this generates a Q(input_integer_bits).(31-input_integer_bits)
   // representation.
-#if TFLITE_SINGLE_ROUNDING
-  const double max_real_multiplier = (1LL << 30) - 1.0;
-#else
-  const double max_real_multiplier = (1LL << 31) - 1.0;
-#endif
-
 #ifdef TFLITE_EMULATE_FLOAT
   const double input_beta = IntegerDoubleMultiply(beta, input_scale);
   int shift;
@@ -304,14 +285,12 @@ void PreprocessSoftmaxScaling(double beta, double input_scale,
   shift += (31 - input_integer_bits);
   double input_beta_real_multiplier =
       DoubleFromFractionAndShift(fraction, shift);
-  if (IntegerDoubleCompare(input_beta_real_multiplier, max_real_multiplier) >
-      0) {
-    input_beta_real_multiplier = max_real_multiplier;
+  if (IntegerDoubleCompare(input_beta_real_multiplier, (1ll << 31) - 1.0) > 0) {
+    input_beta_real_multiplier = (1ll << 31) - 1.0;
   }
 #else   // TFLITE_EMULATE_FLOAT
-  const double input_beta_real_multiplier =
-      std::min<double>(beta * input_scale * (1 << (31 - input_integer_bits)),
-                       max_real_multiplier);
+  const double input_beta_real_multiplier = std::min<double>(
+      beta * input_scale * (1 << (31 - input_integer_bits)), (1ll << 31) - 1.0);
 #endif  // TFLITE_EMULATE_FLOAT
 
   QuantizeMultiplierGreaterThanOne(input_beta_real_multiplier,
@@ -345,8 +324,8 @@ int CalculateInputRadius(int input_integer_bits, int input_left_shift,
 #else   // TFLITE_EMULATE_FLOAT
   const double max_input_rescaled =
       1.0 * ((1 << input_integer_bits) - 1) *
-      (1LL << (total_signed_bits - input_integer_bits)) /
-      (1LL << input_left_shift);
+      (1ll << (total_signed_bits - input_integer_bits)) /
+      (1ll << input_left_shift);
   // Tighten bound using floor.  Suppose that we could use the exact value.
   // After scaling the difference, the result would be at the maximum.  Thus we
   // must ensure that our value has lower magnitude.

@@ -16,8 +16,8 @@ limitations under the License.
 #include "tensorflow/lite/core/api/op_resolver.h"
 
 #include "third_party/flatbuffers/include/flatbuffers/flatbuffers.h"
+#include "tensorflow/lite/c/common.h"
 #include "tensorflow/lite/core/api/error_reporter.h"
-#include "tensorflow/lite/core/c/common.h"
 #include "tensorflow/lite/schema/schema_utils.h"
 
 namespace tflite {
@@ -30,7 +30,8 @@ TfLiteStatus GetRegistrationFromOpCode(
   auto builtin_code = GetBuiltinCode(opcode);
   int version = opcode->version();
 
-  if (builtin_code > BuiltinOperator_MAX) {
+  if (builtin_code > BuiltinOperator_MAX ||
+      builtin_code < BuiltinOperator_MIN) {
     TF_LITE_REPORT_ERROR(
         error_reporter,
         "Op builtin_code out of range: %d. Are you using old TFLite binary "

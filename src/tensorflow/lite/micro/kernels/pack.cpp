@@ -17,7 +17,6 @@ limitations under the License.
 #include "tensorflow/lite/c/common.h"
 #include "tensorflow/lite/kernels/internal/tensor_ctypes.h"
 #include "tensorflow/lite/micro/kernels/kernel_util.h"
-#include "tensorflow/lite/micro/micro_log.h"
 
 namespace tflite {
 namespace ops {
@@ -83,6 +82,10 @@ TfLiteStatus Eval(TfLiteContext* context, TfLiteNode* node) {
       return PackImpl<float>(context, node, output, data->values_count,
                              data->axis);
     }
+    case kTfLiteUInt8: {
+      return PackImpl<uint8_t>(context, node, output, data->values_count,
+                               data->axis);
+    }
     case kTfLiteInt8: {
       return PackImpl<int8_t>(context, node, output, data->values_count,
                               data->axis);
@@ -96,8 +99,8 @@ TfLiteStatus Eval(TfLiteContext* context, TfLiteNode* node) {
                                data->axis);
     }
     default: {
-      MicroPrintf("Type '%s' is not supported by pack.",
-                  TfLiteTypeGetName(output->type));
+      TF_LITE_KERNEL_LOG(context, "Type '%s' is not supported by pack.",
+                         TfLiteTypeGetName(output->type));
       return kTfLiteError;
     }
   }
@@ -109,7 +112,14 @@ TfLiteStatus Eval(TfLiteContext* context, TfLiteNode* node) {
 }  // namespace pack
 
 TfLiteRegistration Register_PACK() {
-  return tflite::micro::RegisterOp(nullptr, nullptr, pack::Eval);
+  return {/*init=*/nullptr,
+          /*free=*/nullptr,
+          /*prepare=*/nullptr,
+          /*invoke=*/pack::Eval,
+          /*profiling_string=*/nullptr,
+          /*builtin_code=*/0,
+          /*custom_name=*/nullptr,
+          /*version=*/0};
 }
 
 }  // namespace micro
