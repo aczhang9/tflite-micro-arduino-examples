@@ -78,3 +78,18 @@ The code here is created through an automatic project generation process
 and may differ from
 that source of truth, since it's cross-platform and needs to be modified to
 work within the Arduino IDE.
+
+## Projects with PlatformIO
+1. Install PlatformIO
+2. Follow these instructions to allow use of SparkFun’s Arduino framework in PlatformIO: https://github.com/nigelb/platform-apollo3blue  
+3. PlatformIO Create new project:
+`platformio init --board SparkFun_RedBoard_Artemis`  
+Add `upload_speed = 230400` to `platformio.ini`   
+Compile code:  
+`platformio run -v`
+Upload to board:  
+`platformio run -t upload -v`
+
+## Sparkfun Redboard Artemis Notes
+
+Copy this library to the `lib/` folder of a PlatformIO project and examples in this library should compile.
