@@ -81,14 +81,14 @@ work within the Arduino IDE.
 
 ## Projects with PlatformIO
 1. Install PlatformIO
-2. Follow these instructions to allow use of SparkFun’s Arduino framework in PlatformIO: https://github.com/nigelb/platform-apollo3blue  
-3. PlatformIO Create new project:
-`platformio init --board SparkFun_RedBoard_Artemis`  
+2. Follow these instructions to allow use of SparkFun’s Arduino framework in PlatformIO: https://github.com/nigelb/platform-apollo3blue. This pulls in the libraries (https://github.com/sparkfun/Arduino_Apollo3/tree/main) for the Apollo3 microcontroller in the Redboard Artemis.  
+3. PlatformIO Create new project:  
+`platformio init --board SparkFun_RedBoard_Artemis`   
 Add `upload_speed = 230400` to `platformio.ini`   
-Compile code:  
-`platformio run -v`
+Compile code:   
+`platformio run -v`  
 Upload to board:  
-`platformio run -t upload -v`
+`platformio run -t upload -v`  
 
 ## Sparkfun Redboard Artemis Notes
 
