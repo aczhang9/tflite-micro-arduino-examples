@@ -29,7 +29,7 @@ limitations under the License.
 ==============================================================================*/
 
 #if defined(ARDUINO) && !defined(ARDUINO_ARDUINO_NANO33BLE)
-#define ARDUINO_EXCLUDE_CODE
+//#define ARDUINO_EXCLUDE_CODE
 #endif  // defined(ARDUINO) && !defined(ARDUINO_ARDUINO_NANO33BLE)
 
 #ifndef ARDUINO_EXCLUDE_CODE
@@ -37,13 +37,15 @@ limitations under the License.
 #include "audio_provider.h"
 
 #include "PDM.h"
-#include "micro_features_micro_model_settings.h"
 
+#include "micro_features_micro_model_settings.h"
+#define pdmDataBufferSize 4096
 namespace {
+AP3_PDM myPDM;   //Create instance of PDM class
 bool g_is_audio_initialized = false;
 // An internal buffer able to fit 16x our sample size
-constexpr int kAudioCaptureBufferSize = DEFAULT_PDM_BUFFER_SIZE * 16;
-int16_t g_audio_capture_buffer[kAudioCaptureBufferSize];
+constexpr int kAudioCaptureBufferSize = _pdmBufferSize * 16;
+uint16_t g_audio_capture_buffer[kAudioCaptureBufferSize];
 // A buffer that holds our output
 int16_t g_audio_output_buffer[kMaxAudioSampleSize];
 // Mark as volatile so we can check in a while loop to see if
@@ -53,7 +55,7 @@ volatile int32_t g_latest_audio_timestamp = 0;
 
 void CaptureSamples() {
   // This is how many bytes of new data we have each time this is called
-  const int number_of_samples = DEFAULT_PDM_BUFFER_SIZE;
+  const int number_of_samples = _pdmBufferSize;
   // Calculate what timestamp the last audio sample represents
   const int32_t time_in_ms =
       g_latest_audio_timestamp +
@@ -64,30 +66,31 @@ void CaptureSamples() {
   // Determine the index of this sample in our ring buffer
   const int capture_index = start_sample_offset % kAudioCaptureBufferSize;
   // Read the data to the correct place in our buffer
-  PDM.read(g_audio_capture_buffer + capture_index, DEFAULT_PDM_BUFFER_SIZE);
+  myPDM.getData(g_audio_capture_buffer + capture_index, _pdmBufferSize);
   // This is how we let the outside world know that new audio data has arrived.
   g_latest_audio_timestamp = time_in_ms;
 }
 
-TfLiteStatus InitAudioRecording(tflite::ErrorReporter* error_reporter) {
+TfLiteStatus InitAudioRecording() {
   // Hook up the callback that will be called with each sample
-  PDM.onReceive(CaptureSamples);
+  // TODO: 
+  //myPDM.onReceive(CaptureSamples);
   // Start listening for audio: MONO @ 16KHz with gain at 20
-  PDM.begin(1, kAudioSampleFrequency);
-  PDM.setGain(20);
+  myPDM.begin(1, kAudioSampleFrequency);
+  // TODO: set gain
+  //myPDM.setGain(20);
   // Block until we have our first audio sample
   while (!g_latest_audio_timestamp) {
   }
 
   return kTfLiteOk;
 }
-
-TfLiteStatus GetAudioSamples(tflite::ErrorReporter* error_reporter,
-                             int start_ms, int duration_ms,
+// TODO: error_reporter in function call
+TfLiteStatus GetAudioSamples(int start_ms, int duration_ms,
                              int* audio_samples_size, int16_t** audio_samples) {
   // Set everything up to start receiving audio
   if (!g_is_audio_initialized) {
-    TfLiteStatus init_status = InitAudioRecording(error_reporter);
+    TfLiteStatus init_status = InitAudioRecording();
     if (init_status != kTfLiteOk) {
       return init_status;
     }
