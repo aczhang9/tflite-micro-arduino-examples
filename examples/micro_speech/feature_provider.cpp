@@ -98,7 +98,7 @@ TfLiteStatus FeatureProvider::PopulateFeatureData(
       int audio_samples_size = 0;
       // TODO(petewarden): Fix bug that leads to non-zero slice_start_ms
       // TODO: Implement GetAudioSamples() funciton in audio_provider.cpp
-      GetAudioSamples((slice_start_ms > 0 ? slice_start_ms : 0),
+      GetAudioSamples(error_reporter, (slice_start_ms > 0 ? slice_start_ms : 0),
                       kFeatureSliceDurationMs, &audio_samples_size,
                       &audio_samples);
       if (audio_samples_size < kMaxAudioSampleSize) {

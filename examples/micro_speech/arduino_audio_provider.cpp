@@ -29,7 +29,7 @@ limitations under the License.
 ==============================================================================*/
 
 #if defined(ARDUINO) && !defined(ARDUINO_ARDUINO_NANO33BLE)
-//#define ARDUINO_EXCLUDE_CODE
+#define ARDUINO_EXCLUDE_CODE
 #endif  // defined(ARDUINO) && !defined(ARDUINO_ARDUINO_NANO33BLE)
 
 #ifndef ARDUINO_EXCLUDE_CODE
@@ -74,6 +74,8 @@ void CaptureSamples() {
 TfLiteStatus InitAudioRecording() {
   // Hook up the callback that will be called with each sample
   // TODO: 
+  // !! onReceive() function is only defined in PDM.h/.cpp of nRF52840 library
+  // (nRF52840 is microcontroller in Arduino Nano 33 BLE)
   //myPDM.onReceive(CaptureSamples);
   // Start listening for audio: MONO @ 16KHz with gain at 20
   myPDM.begin(1, kAudioSampleFrequency);
