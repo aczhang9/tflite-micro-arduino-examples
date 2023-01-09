@@ -28,6 +28,7 @@ limitations under the License.
 #include "tensorflow/lite/micro/micro_mutable_op_resolver.h"
 #include "tensorflow/lite/schema/schema_generated.h"
 #include "tensorflow/lite/version.h"
+#include <PDM.h> //Include PDM library included with the Aruino_Apollo3 core
 
 // Globals, used for compatibility with Arduino-style sketches.
 namespace {
@@ -46,6 +47,8 @@ constexpr int kTensorArenaSize = 10 * 1024;
 uint8_t tensor_arena[kTensorArenaSize];
 int8_t feature_buffer[kFeatureElementCount];
 int8_t* model_input_buffer = nullptr;
+
+AP3_PDM myPDM;   //Create instance of PDM class
 }  // namespace
 
 // The name of this function is important for Arduino compatibility.
@@ -55,6 +58,15 @@ void setup() {
   // NOLINTNEXTLINE(runtime-global-variables)
   static tflite::MicroErrorReporter micro_error_reporter;
   error_reporter = &micro_error_reporter;
+
+  // Turn on PDM with default settings, start interrupts
+  if (myPDM.begin() == false) // Turn on PDM with default settings, start interrupts
+  {
+    Serial.println("PDM Init failed. Are you sure these pins are PDM capable?");
+    while (1)
+      ;
+  }
+  Serial.println("PDM Initialized");
 
   // Map the model into a usable data structure. This doesn't involve any
   // copying or parsing, it's a very lightweight operation.
@@ -129,11 +141,10 @@ void setup() {
 // The name of this function is important for Arduino compatibility.
 void loop() {
   // Fetch the spectrogram for the current time.
-  // TODO: implement LatestAudioTimestamp();
   const int32_t current_time = LatestAudioTimestamp();
   int how_many_new_slices = 0;
   TfLiteStatus feature_status = feature_provider->PopulateFeatureData(
-      error_reporter, previous_time, current_time, &how_many_new_slices);
+      error_reporter, previous_time, current_time, &how_many_new_slices, &myPDM);
   if (feature_status != kTfLiteOk) {
     TF_LITE_REPORT_ERROR(error_reporter, "Feature generation failed");
     return;

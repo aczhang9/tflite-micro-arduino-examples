@@ -18,6 +18,7 @@ limitations under the License.
 
 #include "tensorflow/lite/c/common.h"
 #include "tensorflow/lite/micro/micro_error_reporter.h"
+#include <PDM.h> 
 
 // Binds itself to an area of memory intended to hold the input features for an
 // audio-recognition neural network model, and fills that data area with the
@@ -39,7 +40,7 @@ class FeatureProvider {
   // many feature slices were updated.
   TfLiteStatus PopulateFeatureData(tflite::ErrorReporter* error_reporter,
                                    int32_t last_time_in_ms, int32_t time_in_ms,
-                                   int* how_many_new_slices);
+                                   int* how_many_new_slices, AP3_PDM* myPDM);
 
  private:
   int feature_size_;

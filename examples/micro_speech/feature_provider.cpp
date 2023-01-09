@@ -33,7 +33,7 @@ FeatureProvider::~FeatureProvider() {}
 
 TfLiteStatus FeatureProvider::PopulateFeatureData(
     tflite::ErrorReporter* error_reporter, int32_t last_time_in_ms,
-    int32_t time_in_ms, int* how_many_new_slices) {
+    int32_t time_in_ms, int* how_many_new_slices, AP3_PDM* myPDM) {
   if (feature_size_ != kFeatureElementCount) {
     TF_LITE_REPORT_ERROR(error_reporter,
                          "Requested feature_data_ size %d doesn't match %d",
@@ -100,7 +100,7 @@ TfLiteStatus FeatureProvider::PopulateFeatureData(
       // TODO: Implement GetAudioSamples() funciton in audio_provider.cpp
       GetAudioSamples(error_reporter, (slice_start_ms > 0 ? slice_start_ms : 0),
                       kFeatureSliceDurationMs, &audio_samples_size,
-                      &audio_samples);
+                      &audio_samples, myPDM);
       if (audio_samples_size < kMaxAudioSampleSize) {
         TF_LITE_REPORT_ERROR(error_reporter,
                              "Audio data size %d too small, want %d",

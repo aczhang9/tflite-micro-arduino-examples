@@ -9,7 +9,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
-#define EXCLUDE_AUDIO_PROVIDER
+//#define EXCLUDE_AUDIO_PROVIDER
 #ifndef EXCLUDE_AUDIO_PROVIDER
 
 #include "audio_provider.h"
@@ -17,35 +17,44 @@ limitations under the License.
 
 #include "micro_features_micro_model_settings.h"
 #include <PDM.h> //Include PDM library included with the Aruino_Apollo3 core
-AP3_PDM myPDM;   //Create instance of PDM class
 
 namespace {
-//int16_t g_dummy_audio_data[kMaxAudioSampleSize];
+uint16_t* g_dummy_audio_data; //[kMaxAudioSampleSize];
 int16_t pdmDataBuffer[kMaxAudioSampleSize];
 int32_t g_latest_audio_timestamp = 0;
+uint32_t bytesRead;
 }  // namespace
 
-TfLiteStatus GetAudioSamples(int start_ms, int duration_ms,
-                             int* audio_samples_size, int16_t** audio_samples) {
-  if (myPDM.begin() == false) // Turn on PDM with default settings, start interrupts
-  {
-    Serial.println("PDM Init failed. Are you sure these pins are PDM capable?");
-    while (1);
-  }
-  Serial.println("PDM Initialized");
-  printPDMConfig();
+TfLiteStatus GetAudioSamples(tflite::ErrorReporter* error_reporter,
+                             int start_ms, int duration_ms,
+                             int* audio_samples_size, int16_t** audio_samples, AP3_PDM* myPDM) {
 
-  if (myPDM.available())
+  if ((*myPDM).available())
   {
-    //myPDM.getData(pdmDataBuffer, kMaxAudioSampleSize);
-    Serial.printf("PDM available");
+    //Serial.println("PDM available");
+    
+    g_dummy_audio_data = new uint16_t [kMaxAudioSampleSize];
+    bytesRead = (*myPDM).getData(g_dummy_audio_data, kMaxAudioSampleSize);
+  
+    for (int i = 0; i < kMaxAudioSampleSize; ++i) {
+      pdmDataBuffer[i] = g_dummy_audio_data[i];
+    }
+    *audio_samples_size = kMaxAudioSampleSize;
+    *audio_samples = pdmDataBuffer;
+    // TODO: delete g_dummy_audio_data without if/else statement
+    delete [] g_dummy_audio_data; 
+    
   }
+  else{
+    //Serial.println("PDM not available");
+    
+    for (int i = 0; i < kMaxAudioSampleSize; ++i) {
+      pdmDataBuffer[i] = 0;
+    }
+    *audio_samples_size = kMaxAudioSampleSize;
+    *audio_samples = pdmDataBuffer;
 
-  for (int i = 0; i < kMaxAudioSampleSize; ++i) {
-    pdmDataBuffer[i] = 0;
   }
-  *audio_samples_size = kMaxAudioSampleSize;
-  *audio_samples = pdmDataBuffer;
   return kTfLiteOk;
 }
 
@@ -53,7 +62,7 @@ int32_t LatestAudioTimestamp() {
   g_latest_audio_timestamp += 100;
   return g_latest_audio_timestamp;
 }
-
+/*
 //*****************************************************************************
 //
 // Print PDM configuration data.
@@ -131,8 +140,11 @@ void printPDMConfig(void)
   Serial.printf("Effective Sample Freq.: %12d\n", sampleFreq);
   Serial.printf("FFT Length:             %12d\n\n", kMaxAudioSampleSize);
   Serial.printf("FFT Resolution: %15.3f Hz\n", frequencyUnits);
-}
+}*/
 #endif // EXCLUDE_AUDIO_PROVIDER
+
+#define EXCLUDE_ARTEMIS_AUDIO_PROVIDER
+#ifndef EXCLUDE_ARTEMIS_AUDIO_PROVIDER
 
 /* Copyright 2019 The TensorFlow Authors. All Rights Reserved.
 
@@ -413,10 +425,10 @@ TfLiteStatus InitAudioRecording(tflite::ErrorReporter* error_reporter) {
   CACHECTRL->FLASHCFG_b.SEDELAY = 6;      // Default is 7
   CACHECTRL->FLASHCFG_b.LPM_RD_WAIT = 5;  // Default is 8
 
-  // this block produces Mbed OS fault
   // Enable cache sleep states.
   uint32_t ui32LPMMode = CACHECTRL_FLASHCFG_LPMMODE_STANDBY;
   /*
+  // this block produces Mbed OS fault
   if (am_hal_cachectrl_control(AM_HAL_CACHECTRL_CONTROL_LPMMODE_SET,
                                &ui32LPMMode)) {
     error_reporter->Report("Error - enabling cache sleep state failed.");
@@ -433,6 +445,7 @@ TfLiteStatus InitAudioRecording(tflite::ErrorReporter* error_reporter) {
   am_hal_sysctrl_fpu_enable();
   am_hal_sysctrl_fpu_stacking_enable(true);
   error_reporter->Report("FPU Enabled."); // this is reported
+  // check if board can run single precision
   
   // Ensure the CPU is running as fast as possible.
   // enable_burst_mode(error_reporter);
@@ -487,3 +500,5 @@ int32_t LatestAudioTimestamp() {
    g_latest_audio_timestamp += 100;
    return g_latest_audio_timestamp; 
    }
+
+#endif // EXCLUDE_ARTEMIS_AUDIO_PROVIDER
