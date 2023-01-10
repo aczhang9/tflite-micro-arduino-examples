@@ -47,7 +47,7 @@ TfLiteStatus RecognizeCommands::ProcessLatestResults(
     return kTfLiteError;
   }
 
-  if (latest_results->type != kTfLiteInt8) {
+  if (latest_results->type != kTfLiteUInt8) {
     TF_LITE_REPORT_ERROR(
         error_reporter_,
         "The results for recognition should be int8_t elements, but are %d",

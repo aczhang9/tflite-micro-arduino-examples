@@ -22,6 +22,7 @@ limitations under the License.
 #include "feature_provider.h"
 #include "micro_features_micro_model_settings.h"
 #include "micro_features_model.h"
+#include "micro_features_tiny_conv_micro_features_model_data.h"
 #include "recognize_commands.h"
 #include "tensorflow/lite/micro/micro_error_reporter.h"
 #include "tensorflow/lite/micro/micro_interpreter.h"
@@ -70,7 +71,7 @@ void setup() {
 
   // Map the model into a usable data structure. This doesn't involve any
   // copying or parsing, it's a very lightweight operation.
-  model = tflite::GetModel(g_model);
+  model = tflite::GetModel(g_tiny_conv_micro_features_model_data);
   if (model->version() != TFLITE_SCHEMA_VERSION) {
     TF_LITE_REPORT_ERROR(error_reporter,
                          "Model provided is schema version %d not equal "
@@ -115,12 +116,19 @@ void setup() {
 
   // Get information about the memory area to use for the model's input.
   model_input = interpreter->input(0);
-  if ((model_input->dims->size != 2) || (model_input->dims->data[0] != 1) ||
+/*   if ((model_input->dims->size != 2) || (model_input->dims->data[0] != 1) ||
       (model_input->dims->data[1] !=
        (kFeatureSliceCount * kFeatureSliceSize)) ||
       (model_input->type != kTfLiteInt8)) {
     TF_LITE_REPORT_ERROR(error_reporter,
                          "Bad input tensor parameters in model");
+    return;
+  } */
+  if ((model_input->dims->size != 4) || (model_input->dims->data[0] != 1) ||
+    (model_input->dims->data[1] != kFeatureSliceCount) ||
+    (model_input->dims->data[2] != kFeatureSliceSize) ||
+    (model_input->type != kTfLiteUInt8)) {
+    error_reporter->Report("Bad input tensor parameters in model");
     return;
   }
   model_input_buffer = model_input->data.int8;
