@@ -13,6 +13,15 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
+// Undefine predefined Arduino max/min defs so they don't conflict with std methods
+#if defined(min)
+#undef min
+#endif
+
+#if defined(max)
+#undef max
+#endif
+
 #include <TensorFlowLite.h>
 
 #include "main_functions.h"
@@ -46,8 +55,8 @@ int32_t previous_time = 0;
 // determined by experimentation.
 constexpr int kTensorArenaSize = 10 * 1024;
 uint8_t tensor_arena[kTensorArenaSize];
-int8_t feature_buffer[kFeatureElementCount];
-int8_t* model_input_buffer = nullptr;
+uint8_t feature_buffer[kFeatureElementCount];
+uint8_t* model_input_buffer = nullptr;
 
 AP3_PDM myPDM;   //Create instance of PDM class
 }  // namespace
@@ -60,12 +69,11 @@ void setup() {
   static tflite::MicroErrorReporter micro_error_reporter;
   error_reporter = &micro_error_reporter;
 
-  // Turn on PDM with default settings, start interrupts
+  // Turn on PDM (microphone) with default settings, start interrupts
   if (myPDM.begin() == false) // Turn on PDM with default settings, start interrupts
   {
     Serial.println("PDM Init failed. Are you sure these pins are PDM capable?");
-    while (1)
-      ;
+    while (1);
   }
   Serial.println("PDM Initialized");
 
@@ -131,7 +139,7 @@ void setup() {
     error_reporter->Report("Bad input tensor parameters in model");
     return;
   }
-  model_input_buffer = model_input->data.int8;
+  model_input_buffer = model_input->data.uint8;
 
   // Prepare to access the audio spectrograms from a microphone or other source
   // that will provide the inputs to the neural network.

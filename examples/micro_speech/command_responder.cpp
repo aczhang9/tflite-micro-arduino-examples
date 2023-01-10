@@ -19,7 +19,6 @@ limitations under the License.
 // action instead, and should implement their own versions of this function.
 void RespondToCommand(int32_t current_time, const char* found_command,
                       uint8_t score, bool is_new_command) {
-    MicroPrintf("Heard %s (%d) @%dms", found_command, score, current_time);
   if (is_new_command) {
     MicroPrintf("Heard %s (%d) @%dms", found_command, score, current_time);
   }
