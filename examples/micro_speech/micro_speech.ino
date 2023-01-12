@@ -58,7 +58,7 @@ uint8_t tensor_arena[kTensorArenaSize];
 uint8_t feature_buffer[kFeatureElementCount];
 uint8_t* model_input_buffer = nullptr;
 
-AP3_PDM myPDM;   //Create instance of PDM class
+AP3_PDM* myPDM = nullptr;   // Declare pointer to PDM class
 }  // namespace
 
 // The name of this function is important for Arduino compatibility.
@@ -69,8 +69,9 @@ void setup() {
   static tflite::MicroErrorReporter micro_error_reporter;
   error_reporter = &micro_error_reporter;
 
+  myPDM = new AP3_PDM();
   // Turn on PDM (microphone) with default settings, start interrupts
-  if (myPDM.begin() == false) // Turn on PDM with default settings, start interrupts
+  if (myPDM->begin() == false) // Turn on PDM with default settings, start interrupts
   {
     Serial.println("PDM Init failed. Are you sure these pins are PDM capable?");
     while (1);
@@ -160,7 +161,8 @@ void loop() {
   const int32_t current_time = LatestAudioTimestamp();
   int how_many_new_slices = 0;
   TfLiteStatus feature_status = feature_provider->PopulateFeatureData(
-      error_reporter, previous_time, current_time, &how_many_new_slices, &myPDM);
+      error_reporter, previous_time, current_time, &how_many_new_slices, myPDM);
+      // TODO: add log line for how_many_new_slices
   if (feature_status != kTfLiteOk) {
     TF_LITE_REPORT_ERROR(error_reporter, "Feature generation failed");
     return;
