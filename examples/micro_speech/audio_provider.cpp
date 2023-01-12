@@ -17,50 +17,151 @@ limitations under the License.
 
 #include "micro_features_micro_model_settings.h"
 #include <PDM.h> //Include PDM library included with the Aruino_Apollo3 core
+#include <arm_math.h>
 
 namespace {
-uint16_t* g_dummy_audio_data; //[kMaxAudioSampleSize];
+//uint16_t* g_dummy_audio_data; //[kMaxAudioSampleSize];
 int16_t pdmDataBuffer[kMaxAudioSampleSize];
+uint16_t g_dummy_audio_data[kMaxAudioSampleSize];
 int32_t g_latest_audio_timestamp = 0;
 uint32_t bytesRead;
+
+// Holds a longer history of audio samples in a ring buffer.
+constexpr int kAudioCaptureBufferSize = 16000;
+uint16_t g_audio_capture_buffer[kAudioCaptureBufferSize] = {};
+int g_audio_capture_buffer_start = 0;
+int64_t g_total_samples_captured = 0;
+
+// Copy of audio samples returned to the caller.
+int16_t g_audio_output_buffer[kMaxAudioSampleSize];
+bool g_is_audio_initialized = false; // if this flag is set to true, fault does not occur
+
 }  // namespace
 
 TfLiteStatus GetAudioSamples(tflite::ErrorReporter* error_reporter,
                              int start_ms, int duration_ms,
                              int* audio_samples_size, int16_t** audio_samples, AP3_PDM* myPDM) {
 
-  if ((*myPDM).available())
-  {
-    //Serial.println("PDM available");
-    
-    g_dummy_audio_data = new uint16_t [kMaxAudioSampleSize];
-    bytesRead = (*myPDM).getData(g_dummy_audio_data, kMaxAudioSampleSize);
-  
-    for (int i = 0; i < kMaxAudioSampleSize; ++i) {
-      pdmDataBuffer[i] = g_dummy_audio_data[i];
-    }
-    *audio_samples_size = kMaxAudioSampleSize;
-    *audio_samples = pdmDataBuffer;
-    // TODO: delete g_dummy_audio_data without if/else statement
-    delete [] g_dummy_audio_data; 
-    
-  }
-  else{
-    //Serial.println("PDM not available");
-    
-    for (int i = 0; i < kMaxAudioSampleSize; ++i) {
-      pdmDataBuffer[i] = 0;
-    }
-    *audio_samples_size = kMaxAudioSampleSize;
-    *audio_samples = pdmDataBuffer;
+  // TODO: add code from below
+  // TODO: zero initialize array
+  // TODO: make sure audio data is valid
 
+  // This should only be called when the main thread notices that the latest
+  // audio sample data timestamp has changed, so that there's new data in the
+  // capture ring buffer. The ring buffer will eventually wrap around and
+  // overwrite the data, but the assumption is that the main thread is checking
+  // often enough and the buffer is large enough that this call will be made
+  // before that happens.
+  const int start_offset =
+      (start_ms < 0) ? 0 : start_ms * (kAudioSampleFrequency / 1000);
+  const int duration_sample_count =
+      duration_ms * (kAudioSampleFrequency / 1000);
+
+  //MicroPrintf("start offset %d, duration sample count %d", start_offset, duration_sample_count);
+
+  if (myPDM->available())
+  {
+    bytesRead = myPDM->getData(g_audio_capture_buffer, kAudioCaptureBufferSize);
+    //Serial.println("PDM available");
+    printLoudest();
+    for (int i = 0; i < duration_sample_count; ++i) { // max index is 512
+      const int capture_index = (start_offset + i) % kAudioCaptureBufferSize;
+      g_audio_output_buffer[i] = g_audio_capture_buffer[capture_index];
+    }
   }
+  else {
+    //Serial.println("PDM not available");
+    for (int i = 0; i < duration_sample_count; ++i) { // max index is 512
+      const int capture_index = (start_offset + i) % kAudioCaptureBufferSize;
+      g_audio_output_buffer[i] = 0;   // maybe g_audio_capture_buffer is already initialized to zero so this doesn't need to be its own else statement
+  }
+  }
+  *audio_samples_size = kMaxAudioSampleSize;
+  *audio_samples = g_audio_output_buffer;
+
+  // Go to Deep Sleep until the PDM ISR or other ISR wakes us.
+  //am_hal_sysctrl_sleep(AM_HAL_SYSCTRL_SLEEP_DEEP);
+
   return kTfLiteOk;
 }
 
 int32_t LatestAudioTimestamp() {
   g_latest_audio_timestamp += 100;
   return g_latest_audio_timestamp;
+}
+
+//Global variables needed for PDM library
+#define pdmDataBufferSize 4096 //Default is array of 4096 * 32bit
+uint16_t pdmDataBuffer[pdmDataBufferSize];
+
+//Global variables needed for the FFT in this sketch
+float g_fPDMTimeDomain[pdmDataBufferSize * 2];
+float g_fPDMFrequencyDomain[pdmDataBufferSize * 2];
+float g_fPDMMagnitudes[pdmDataBufferSize * 2];
+uint32_t sampleFreq;
+
+//Enable these defines for additional debug printing
+#define PRINT_PDM_DATA 0
+#define PRINT_FFT_DATA 0
+
+void printLoudest(void)
+{
+  float fMaxValue;
+  uint32_t ui32MaxIndex;
+  int16_t *pi16PDMData = (int16_t *)g_audio_capture_buffer;
+  uint32_t ui32LoudestFrequency;
+
+  //
+  // Convert the PDM samples to floats, and arrange them in the format
+  // required by the FFT function.
+  //
+  for (uint32_t i = 0; i < pdmDataBufferSize; i++)
+  {
+    if (PRINT_PDM_DATA)
+    {
+      Serial.printf("%d\n", pi16PDMData[i]);
+    }
+
+    g_fPDMTimeDomain[2 * i] = pi16PDMData[i] / 1.0;
+    g_fPDMTimeDomain[2 * i + 1] = 0.0;
+  }
+
+  if (PRINT_PDM_DATA)
+  {
+    Serial.printf("END\n");
+  }
+
+  //
+  // Perform the FFT.
+  //
+  arm_cfft_radix4_instance_f32 S;
+  arm_cfft_radix4_init_f32(&S, pdmDataBufferSize, 0, 1);
+  arm_cfft_radix4_f32(&S, g_fPDMTimeDomain);
+  arm_cmplx_mag_f32(g_fPDMTimeDomain, g_fPDMMagnitudes, pdmDataBufferSize);
+
+  if (PRINT_FFT_DATA)
+  {
+    for (uint32_t i = 0; i < pdmDataBufferSize / 2; i++)
+    {
+      Serial.printf("%f\n", g_fPDMMagnitudes[i]);
+    }
+
+    Serial.printf("END\n");
+  }
+
+  //
+  // Find the frequency bin with the largest magnitude.
+  //
+  arm_max_f32(g_fPDMMagnitudes, pdmDataBufferSize / 2, &fMaxValue, &ui32MaxIndex);
+
+  ui32LoudestFrequency = (sampleFreq * ui32MaxIndex) / pdmDataBufferSize;
+
+  if (PRINT_FFT_DATA)
+  {
+    Serial.printf("Loudest frequency bin: %d\n", ui32MaxIndex);
+  }
+
+  Serial.printf("Loudest frequency: %d         \n", ui32LoudestFrequency);
 }
 /*
 //*****************************************************************************
