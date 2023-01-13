@@ -1,4 +1,4 @@
-/* Copyright 2022 The TensorFlow Authors. All Rights Reserved.
+/* Copyright 2018 The TensorFlow Authors. All Rights Reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -17,7 +17,8 @@ limitations under the License.
 #define TENSORFLOW_LITE_MICRO_EXAMPLES_MICRO_SPEECH_AUDIO_PROVIDER_H_
 
 #include "tensorflow/lite/c/common.h"
-
+#include "tensorflow/lite/micro/micro_error_reporter.h"
+#include <PDM.h> 
 // This is an abstraction around an audio source like a microphone, and is
 // expected to return 16-bit PCM sample data for a given point in time. The
 // sample data itself should be used as quickly as possible by the caller, since
@@ -28,7 +29,8 @@ limitations under the License.
 // The reference implementation can have no platform-specific dependencies, so
 // it just returns an array filled with zeros. For real applications, you should
 // ensure there's a specialized implementation that accesses hardware APIs.
-TfLiteStatus GetAudioSamples(int start_ms, int duration_ms,
+TfLiteStatus GetAudioSamples(tflite::ErrorReporter* error_reporter, 
+                             int start_ms, int duration_ms,
                              int* audio_samples_size, int16_t** audio_samples);
 
 // Returns the time that audio data was last captured in milliseconds. There's
@@ -41,7 +43,7 @@ TfLiteStatus GetAudioSamples(int start_ms, int duration_ms,
 // your own platform-specific implementation.
 int32_t LatestAudioTimestamp();
 
-// Starts audio capture
-TfLiteStatus InitAudioRecording();
+void printLoudest();
+void printPDMConfig();
 
 #endif  // TENSORFLOW_LITE_MICRO_EXAMPLES_MICRO_SPEECH_AUDIO_PROVIDER_H_

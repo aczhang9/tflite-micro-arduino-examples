@@ -19,8 +19,74 @@ limitations under the License.
 #ifndef TENSORFLOW_LITE_C_C_API_TYPES_H_
 #define TENSORFLOW_LITE_C_C_API_TYPES_H_
 
-/// For documentation, see
-/// third_party/tensorflow/lite/core/c/c_api_types.h.
-#include "tensorflow/lite/core/c/c_api_types.h"
+#include <stdint.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+// Define TFL_CAPI_EXPORT macro to export a function properly with a shared
+// library.
+#ifdef SWIG
+#define TFL_CAPI_EXPORT
+#else
+#if defined(_WIN32)
+#ifdef TFL_COMPILE_LIBRARY
+#define TFL_CAPI_EXPORT __declspec(dllexport)
+#else
+#define TFL_CAPI_EXPORT __declspec(dllimport)
+#endif  // TFL_COMPILE_LIBRARY
+#else
+#define TFL_CAPI_EXPORT __attribute__((visibility("default")))
+#endif  // _WIN32
+#endif  // SWIG
+
+typedef enum TfLiteStatus {
+  kTfLiteOk = 0,
+
+  // Generally referring to an error in the runtime (i.e. interpreter)
+  kTfLiteError = 1,
+
+  // Generally referring to an error from a TfLiteDelegate itself.
+  kTfLiteDelegateError = 2,
+
+  // Generally referring to an error in applying a delegate due to
+  // incompatibility between runtime and delegate, e.g., this error is returned
+  // when trying to apply a TfLite delegate onto a model graph that's already
+  // immutable.
+  kTfLiteApplicationError = 3
+} TfLiteStatus;
+
+// Types supported by tensor
+typedef enum {
+  kTfLiteNoType = 0,
+  kTfLiteFloat32 = 1,
+  kTfLiteInt32 = 2,
+  kTfLiteUInt8 = 3,
+  kTfLiteInt64 = 4,
+  kTfLiteString = 5,
+  kTfLiteBool = 6,
+  kTfLiteInt16 = 7,
+  kTfLiteComplex64 = 8,
+  kTfLiteInt8 = 9,
+  kTfLiteFloat16 = 10,
+  kTfLiteFloat64 = 11,
+  kTfLiteComplex128 = 12,
+  kTfLiteUInt64 = 13,
+} TfLiteType;
+
+// Legacy. Will be deprecated in favor of TfLiteAffineQuantization.
+// If per-layer quantization is specified this field will still be populated in
+// addition to TfLiteAffineQuantization.
+// Parameters for asymmetric quantization. Quantized values can be converted
+// back to float using:
+//     real_value = scale * (quantized_value - zero_point)
+typedef struct TfLiteQuantizationParams {
+  float scale;
+  int32_t zero_point;
+} TfLiteQuantizationParams;
+
+#ifdef __cplusplus
+}  // extern C
+#endif
 #endif  // TENSORFLOW_LITE_C_C_API_TYPES_H_

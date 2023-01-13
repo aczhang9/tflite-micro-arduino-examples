@@ -1,4 +1,4 @@
-/* Copyright 2022 The TensorFlow Authors. All Rights Reserved.
+/* Copyright 2019 The TensorFlow Authors. All Rights Reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -18,10 +18,9 @@ limitations under the License.
 #include <cmath>
 #include <cstring>
 
-#include "micro_features_micro_model_settings.h"
 #include "tensorflow/lite/experimental/microfrontend/lib/frontend.h"
 #include "tensorflow/lite/experimental/microfrontend/lib/frontend_util.h"
-#include "tensorflow/lite/micro/micro_log.h"
+#include "micro_features_micro_model_settings.h"
 
 // Configure FFT to output 16 bit fixed point.
 #define FIXED_POINT 16
@@ -33,7 +32,7 @@ bool g_is_first_time = true;
 
 }  // namespace
 
-TfLiteStatus InitializeMicroFeatures() {
+TfLiteStatus InitializeMicroFeatures(tflite::ErrorReporter* error_reporter) {
   FrontendConfig config;
   config.window.size_ms = kFeatureSliceDurationMs;
   config.window.step_size_ms = kFeatureSliceStrideMs;
@@ -53,7 +52,7 @@ TfLiteStatus InitializeMicroFeatures() {
   config.log_scale.scale_shift = 6;
   if (!FrontendPopulateState(&config, &g_micro_features_state,
                              kAudioSampleFrequency)) {
-    MicroPrintf("FrontendPopulateState() failed");
+    TF_LITE_REPORT_ERROR(error_reporter, "FrontendPopulateState() failed");
     return kTfLiteError;
   }
   g_is_first_time = true;
@@ -68,15 +67,16 @@ void SetMicroFeaturesNoiseEstimates(const uint32_t* estimate_presets) {
   }
 }
 
-TfLiteStatus GenerateMicroFeatures(const int16_t* input, int input_size,
-                                   int output_size, int8_t* output,
+TfLiteStatus GenerateMicroFeatures(tflite::ErrorReporter* error_reporter,
+                                   const int16_t* input, int input_size,
+                                   int output_size, uint8_t* output,
                                    size_t* num_samples_read) {
   const int16_t* frontend_input;
   if (g_is_first_time) {
     frontend_input = input;
     g_is_first_time = false;
   } else {
-    frontend_input = input;
+    frontend_input = input + 160;
   }
   FrontendOutput frontend_output = FrontendProcessSamples(
       &g_micro_features_state, frontend_input, input_size, num_samples_read);
@@ -97,7 +97,7 @@ TfLiteStatus GenerateMicroFeatures(const int16_t* input, int input_size,
     // input = (((feature / 25.6) / 26.0) * 256) - 128
     // To simplify this and perform it in 32-bit integer math, we rearrange to:
     // input = (feature * 256) / (25.6 * 26.0) - 128
-    constexpr int32_t value_scale = 256;
+/*     constexpr int32_t value_scale = 256;
     constexpr int32_t value_div = static_cast<int32_t>((25.6f * 26.0f) + 0.5f);
     int32_t value =
         ((frontend_output.values[i] * value_scale) + (value_div / 2)) /
@@ -110,7 +110,21 @@ TfLiteStatus GenerateMicroFeatures(const int16_t* input, int input_size,
       value = 127;
     }
     output[i] = value;
+  } */
+    // These scaling values are derived from those used in input_data.py in the
+    // training pipeline.
+    constexpr int32_t value_scale = (10 * 255);
+    constexpr int32_t value_div = (256 * 26);
+    int32_t value =
+        ((frontend_output.values[i] * value_scale) + (value_div / 2)) /
+        value_div;
+    if (value < 0) {
+      value = 0;
+    }
+    if (value > 255) {
+      value = 255;
+    }
+    output[i] = value;
   }
-
   return kTfLiteOk;
 }

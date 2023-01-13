@@ -19,7 +19,6 @@ limitations under the License.
 #include "tensorflow/lite/kernels/internal/tensor_ctypes.h"
 #include "tensorflow/lite/kernels/kernel_util.h"
 #include "tensorflow/lite/micro/kernels/kernel_util.h"
-#include "tensorflow/lite/micro/micro_log.h"
 
 namespace tflite {
 namespace ops {
@@ -105,6 +104,19 @@ TfLiteStatus EqualEval(TfLiteContext* context, TfLiteNode* node) {
                 tflite::micro::GetTensorData<int64_t>(input2), output_shape,
                 output_data);
       break;
+    case kTfLiteUInt8:
+      requires_broadcast
+          ? reference_ops::Broadcast4DSlowEqualWithScaling(
+                data->params, input1_shape,
+                tflite::micro::GetTensorData<uint8_t>(input1), input2_shape,
+                tflite::micro::GetTensorData<uint8_t>(input2), output_shape,
+                output_data)
+          : reference_ops::EqualWithScaling(
+                data->params, input1_shape,
+                tflite::micro::GetTensorData<uint8_t>(input1), input2_shape,
+                tflite::micro::GetTensorData<uint8_t>(input2), output_shape,
+                output_data);
+      break;
     case kTfLiteInt8:
       requires_broadcast
           ? reference_ops::Broadcast4DSlowEqualWithScaling(
@@ -119,8 +131,8 @@ TfLiteStatus EqualEval(TfLiteContext* context, TfLiteNode* node) {
                 output_data);
       break;
     default:
-      MicroPrintf("Type %s (%d) not supported.",
-                  TfLiteTypeGetName(input1->type), input1->type);
+      TF_LITE_KERNEL_LOG(context, "Type %s (%d) not supported.",
+                         TfLiteTypeGetName(input1->type), input1->type);
       return kTfLiteError;
   }
   return kTfLiteOk;
@@ -197,6 +209,19 @@ TfLiteStatus NotEqualEval(TfLiteContext* context, TfLiteNode* node) {
                 tflite::micro::GetTensorData<int64_t>(input2), output_shape,
                 output_data);
       break;
+    case kTfLiteUInt8:
+      requires_broadcast
+          ? reference_ops::Broadcast4DSlowNotEqualWithScaling(
+                data->params, input1_shape,
+                tflite::micro::GetTensorData<uint8_t>(input1), input2_shape,
+                tflite::micro::GetTensorData<uint8_t>(input2), output_shape,
+                output_data)
+          : reference_ops::NotEqualWithScaling(
+                data->params, input1_shape,
+                tflite::micro::GetTensorData<uint8_t>(input1), input2_shape,
+                tflite::micro::GetTensorData<uint8_t>(input2), output_shape,
+                output_data);
+      break;
     case kTfLiteInt8:
       requires_broadcast
           ? reference_ops::Broadcast4DSlowNotEqualWithScaling(
@@ -211,8 +236,8 @@ TfLiteStatus NotEqualEval(TfLiteContext* context, TfLiteNode* node) {
                 output_data);
       break;
     default:
-      MicroPrintf("Type %s (%d) not supported.",
-                  TfLiteTypeGetName(input1->type), input1->type);
+      TF_LITE_KERNEL_LOG(context, "Type %s (%d) not supported.",
+                         TfLiteTypeGetName(input1->type), input1->type);
       return kTfLiteError;
   }
   return kTfLiteOk;
@@ -275,6 +300,19 @@ TfLiteStatus GreaterEval(TfLiteContext* context, TfLiteNode* node) {
                 tflite::micro::GetTensorData<int64_t>(input2), output_shape,
                 output_data);
       break;
+    case kTfLiteUInt8:
+      requires_broadcast
+          ? reference_ops::Broadcast4DSlowGreaterWithScaling(
+                data->params, input1_shape,
+                tflite::micro::GetTensorData<uint8_t>(input1), input2_shape,
+                tflite::micro::GetTensorData<uint8_t>(input2), output_shape,
+                output_data)
+          : reference_ops::GreaterWithScaling(
+                data->params, input1_shape,
+                tflite::micro::GetTensorData<uint8_t>(input1), input2_shape,
+                tflite::micro::GetTensorData<uint8_t>(input2), output_shape,
+                output_data);
+      break;
     case kTfLiteInt8:
       requires_broadcast
           ? reference_ops::Broadcast4DSlowGreaterWithScaling(
@@ -289,8 +327,8 @@ TfLiteStatus GreaterEval(TfLiteContext* context, TfLiteNode* node) {
                 output_data);
       break;
     default:
-      MicroPrintf("Type %s (%d) not supported.",
-                  TfLiteTypeGetName(input1->type), input1->type);
+      TF_LITE_KERNEL_LOG(context, "Type %s (%d) not supported.",
+                         TfLiteTypeGetName(input1->type), input1->type);
       return kTfLiteError;
   }
   return kTfLiteOk;
@@ -353,6 +391,19 @@ TfLiteStatus GreaterEqualEval(TfLiteContext* context, TfLiteNode* node) {
                 tflite::micro::GetTensorData<int64_t>(input2), output_shape,
                 output_data);
       break;
+    case kTfLiteUInt8:
+      requires_broadcast
+          ? reference_ops::Broadcast4DSlowGreaterEqualWithScaling(
+                data->params, input1_shape,
+                tflite::micro::GetTensorData<uint8_t>(input1), input2_shape,
+                tflite::micro::GetTensorData<uint8_t>(input2), output_shape,
+                output_data)
+          : reference_ops::GreaterEqualWithScaling(
+                data->params, input1_shape,
+                tflite::micro::GetTensorData<uint8_t>(input1), input2_shape,
+                tflite::micro::GetTensorData<uint8_t>(input2), output_shape,
+                output_data);
+      break;
     case kTfLiteInt8:
       requires_broadcast
           ? reference_ops::Broadcast4DSlowGreaterEqualWithScaling(
@@ -367,8 +418,8 @@ TfLiteStatus GreaterEqualEval(TfLiteContext* context, TfLiteNode* node) {
                 output_data);
       break;
     default:
-      MicroPrintf("Type %s (%d) not supported.",
-                  TfLiteTypeGetName(input1->type), input1->type);
+      TF_LITE_KERNEL_LOG(context, "Type %s (%d) not supported.",
+                         TfLiteTypeGetName(input1->type), input1->type);
       return kTfLiteError;
   }
   return kTfLiteOk;
@@ -431,6 +482,19 @@ TfLiteStatus LessEval(TfLiteContext* context, TfLiteNode* node) {
                 tflite::micro::GetTensorData<int64_t>(input2), output_shape,
                 output_data);
       break;
+    case kTfLiteUInt8:
+      requires_broadcast
+          ? reference_ops::Broadcast4DSlowLessWithScaling(
+                data->params, input1_shape,
+                tflite::micro::GetTensorData<uint8_t>(input1), input2_shape,
+                tflite::micro::GetTensorData<uint8_t>(input2), output_shape,
+                output_data)
+          : reference_ops::LessWithScaling(
+                data->params, input1_shape,
+                tflite::micro::GetTensorData<uint8_t>(input1), input2_shape,
+                tflite::micro::GetTensorData<uint8_t>(input2), output_shape,
+                output_data);
+      break;
     case kTfLiteInt8:
       requires_broadcast
           ? reference_ops::Broadcast4DSlowLessWithScaling(
@@ -445,8 +509,8 @@ TfLiteStatus LessEval(TfLiteContext* context, TfLiteNode* node) {
                 output_data);
       break;
     default:
-      MicroPrintf("Type %s (%d) not supported.",
-                  TfLiteTypeGetName(input1->type), input1->type);
+      TF_LITE_KERNEL_LOG(context, "Type %s (%d) not supported.",
+                         TfLiteTypeGetName(input1->type), input1->type);
       return kTfLiteError;
   }
   return kTfLiteOk;
@@ -509,6 +573,19 @@ TfLiteStatus LessEqualEval(TfLiteContext* context, TfLiteNode* node) {
                 tflite::micro::GetTensorData<int64_t>(input2), output_shape,
                 output_data);
       break;
+    case kTfLiteUInt8:
+      requires_broadcast
+          ? reference_ops::Broadcast4DSlowLessEqualWithScaling(
+                data->params, input1_shape,
+                tflite::micro::GetTensorData<uint8_t>(input1), input2_shape,
+                tflite::micro::GetTensorData<uint8_t>(input2), output_shape,
+                output_data)
+          : reference_ops::LessEqualWithScaling(
+                data->params, input1_shape,
+                tflite::micro::GetTensorData<uint8_t>(input1), input2_shape,
+                tflite::micro::GetTensorData<uint8_t>(input2), output_shape,
+                output_data);
+      break;
     case kTfLiteInt8:
       requires_broadcast
           ? reference_ops::Broadcast4DSlowLessEqualWithScaling(
@@ -523,8 +600,8 @@ TfLiteStatus LessEqualEval(TfLiteContext* context, TfLiteNode* node) {
                 output_data);
       break;
     default:
-      MicroPrintf("Type %s (%d) not supported.",
-                  TfLiteTypeGetName(input1->type), input1->type);
+      TF_LITE_KERNEL_LOG(context, "Type %s (%d) not supported.",
+                         TfLiteTypeGetName(input1->type), input1->type);
       return kTfLiteError;
   }
   return kTfLiteOk;
@@ -541,16 +618,12 @@ TfLiteStatus Prepare(TfLiteContext* context, TfLiteNode* node) {
   TFLITE_DCHECK(node->user_data != nullptr);
   OpData* data = static_cast<OpData*>(node->user_data);
 
-  MicroContext* micro_context = GetMicroContext(context);
-
-  TfLiteTensor* input1 =
-      micro_context->AllocateTempInputTensor(node, kInputTensor1);
+  const TfLiteTensor* input1 = GetInput(context, node, kInputTensor1);
   TF_LITE_ENSURE(context, input1 != nullptr);
-  TfLiteTensor* input2 =
-      micro_context->AllocateTempInputTensor(node, kInputTensor2);
+  const TfLiteTensor* input2 = GetInput(context, node, kInputTensor2);
   TF_LITE_ENSURE(context, input2 != nullptr);
 
-  if (input1->type == kTfLiteInt8) {
+  if (input1->type == kTfLiteUInt8 || input1->type == kTfLiteInt8) {
     auto input1_offset = -input1->params.zero_point;
     auto input2_offset = -input2->params.zero_point;
     const int kLeftShift = 8;
@@ -575,42 +648,75 @@ TfLiteStatus Prepare(TfLiteContext* context, TfLiteNode* node) {
     data->params.input2_shift = input2_shift;
   }
 
-  micro_context->DeallocateTempTfLiteTensor(input1);
-  micro_context->DeallocateTempTfLiteTensor(input2);
-
   return kTfLiteOk;
 }
 
 }  // namespace comparisons
 
 TfLiteRegistration Register_EQUAL() {
-  return tflite::micro::RegisterOp(comparisons::Init, comparisons::Prepare,
-                                   comparisons::EqualEval);
+  return {/*init=*/comparisons::Init,
+          /*free=*/nullptr,
+          /*prepare=*/comparisons::Prepare,
+          /*invoke=*/comparisons::EqualEval,
+          /*profiling_string=*/nullptr,
+          /*builtin_code=*/0,
+          /*custom_name=*/nullptr,
+          /*version=*/0};
 }
 
 TfLiteRegistration Register_NOT_EQUAL() {
-  return tflite::micro::RegisterOp(comparisons::Init, comparisons::Prepare,
-                                   comparisons::NotEqualEval);
+  return {/*init=*/comparisons::Init,
+          /*free=*/nullptr,
+          /*prepare=*/comparisons::Prepare,
+          /*invoke=*/comparisons::NotEqualEval,
+          /*profiling_string=*/nullptr,
+          /*builtin_code=*/0,
+          /*custom_name=*/nullptr,
+          /*version=*/0};
 }
 
 TfLiteRegistration Register_GREATER() {
-  return tflite::micro::RegisterOp(comparisons::Init, comparisons::Prepare,
-                                   comparisons::GreaterEval);
+  return {/*init=*/comparisons::Init,
+          /*free=*/nullptr,
+          /*prepare=*/comparisons::Prepare,
+          /*invoke=*/comparisons::GreaterEval,
+          /*profiling_string=*/nullptr,
+          /*builtin_code=*/0,
+          /*custom_name=*/nullptr,
+          /*version=*/0};
 }
 
 TfLiteRegistration Register_GREATER_EQUAL() {
-  return tflite::micro::RegisterOp(comparisons::Init, comparisons::Prepare,
-                                   comparisons::GreaterEqualEval);
+  return {/*init=*/comparisons::Init,
+          /*free=*/nullptr,
+          /*prepare=*/comparisons::Prepare,
+          /*invoke=*/comparisons::GreaterEqualEval,
+          /*profiling_string=*/nullptr,
+          /*builtin_code=*/0,
+          /*custom_name=*/nullptr,
+          /*version=*/0};
 }
 
 TfLiteRegistration Register_LESS() {
-  return tflite::micro::RegisterOp(comparisons::Init, comparisons::Prepare,
-                                   comparisons::LessEval);
+  return {/*init=*/comparisons::Init,
+          /*free=*/nullptr,
+          /*prepare=*/comparisons::Prepare,
+          /*invoke=*/comparisons::LessEval,
+          /*profiling_string=*/nullptr,
+          /*builtin_code=*/0,
+          /*custom_name=*/nullptr,
+          /*version=*/0};
 }
 
 TfLiteRegistration Register_LESS_EQUAL() {
-  return tflite::micro::RegisterOp(comparisons::Init, comparisons::Prepare,
-                                   comparisons::LessEqualEval);
+  return {/*init=*/comparisons::Init,
+          /*free=*/nullptr,
+          /*prepare=*/comparisons::Prepare,
+          /*invoke=*/comparisons::LessEqualEval,
+          /*profiling_string=*/nullptr,
+          /*builtin_code=*/0,
+          /*custom_name=*/nullptr,
+          /*version=*/0};
 }
 
 }  // namespace micro
